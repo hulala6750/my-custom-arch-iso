@@ -1,1 +1,46 @@
+name: Build Custom Arch ISO
 
+on:
+  workflow_dispatch: # Allows you to trigger the build with a click
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Arch ISO inside Docker
+        run: |
+          docker run --privileged --rm -v $(pwd):/workspace archlinux:latest bash -c "
+            # 1. Update keys and packages
+            pacman-key --init
+            pacman-key --populate
+            pacman -Syu --noconfirm archiso git
+
+            # 2. Prepare the build directory
+            mkdir -p /tmp/archiso-build
+            cp -r /usr/share/archiso/configs/releng/* /tmp/archiso-build/
+
+            # 3. Enable multilib (required for Steam / Gaming)
+            sed -i '/\[multilib\]/,/Include/ s/^#//' /tmp/archiso-build/pacman.conf
+
+            # 4. Overwrite package list with yours
+            cat /workspace/packages.x86_64 >> /tmp/archiso-build/packages.x86_64
+
+            # 5. Enable LightDM (login screen) and Network on boot
+            mkdir -p /tmp/archiso-build/airootfs/etc/systemd/system/display-manager.service.wants/
+            ln -s /usr/lib/systemd/system/lightdm.service /tmp/archiso-build/airootfs/etc/systemd/system/display-manager.service
+            mkdir -p /tmp/archiso-build/airootfs/etc/systemd/system/multi-user.target.wants/
+            ln -s /usr/lib/systemd/system/NetworkManager.service /tmp/archiso-build/airootfs/etc/systemd/system/multi-user.target.wants/NetworkManager.service
+
+            # 6. Build the ISO
+            cd /tmp/archiso-build
+            mkarchiso -v -w work/ -o /workspace/out/ .
+          "
+
+      - name: Upload ISO Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Custom-Arch-Kali-Gaming-ISO
+          path: out/*.iso
