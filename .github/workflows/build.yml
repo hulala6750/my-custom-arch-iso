@@ -3,6 +3,9 @@ name: Build Sanguine OS
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -12,7 +15,6 @@ jobs:
 
       - name: Generate and Run Build Script in Docker
         run: |
-          # 1. Create a clean shell script to run inside Arch container
           cat << 'EOF' > run_build.sh
           #!/bin/bash
           set -e
@@ -53,19 +55,19 @@ jobs:
           mkdir -p /tmp/archiso-build/airootfs/etc/systemd/system/multi-user.target.wants/
           ln -sf /usr/lib/systemd/system/NetworkManager.service /tmp/archiso-build/airootfs/etc/systemd/system/multi-user.target.wants/NetworkManager.service
 
-          echo "==> Building Sanguine OS ISO (this takes 10-15 mins)..."
+          echo "==> Building Sanguine OS ISO..."
           mkdir -p /workspace/out
           cd /tmp/archiso-build
           mkarchiso -v -w /tmp/archiso-work -o /workspace/out .
           EOF
 
           chmod +x run_build.sh
-
-          # 2. Execute inside privileged Arch Linux container
           docker run --privileged --rm -v $(pwd):/workspace archlinux:latest bash /workspace/run_build.sh
 
-      - name: Upload Sanguine OS ISO Artifact
-        uses: actions/upload-artifact@v4
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
         with:
-          name: Sanguine-OS-Live-ISO
-          path: out/*.iso
+          tag_name: "v1.0"
+          name: "Sanguine OS v1.0"
+          body: "Official build of Sanguine OS with KDE Plasma, Gaming, Coding, and Pentesting tools."
+          files: out/*.iso
