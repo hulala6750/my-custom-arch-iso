@@ -1,1 +1,53 @@
+# --- BASE SYSTEM ---
+base
+linux-zen
+linux-zen-headers
+linux-firmware
+networkmanager
+sudo
+nano
 
+# --- DESKTOP (Kali-style lightweight GUI) ---
+xfce4
+xfce4-goodies
+lightdm
+lightdm-gtk-greeter
+xorg-server
+pipewire
+pipewire-pulse
+pavucontrol
+firefox
+
+# --- CODING & DEV ---
+base-devel
+git
+python
+python-pip
+gcc
+make
+docker
+neovim
+
+# --- GAMING ---
+steam
+lutris
+gamemode
+mesa
+lib32-mesa
+vulkan-radeon
+lib32-vulkan-radeon
+vulkan-intel
+lib32-vulkan-intel
+wine
+
+# --- KALI / PEN-TESTING ARSENAL ---
+nmap
+wireshark-qt
+aircrack-ng
+hydra
+john
+metasploit
+hashcat
+tcpdump
+sqlmap
+nikto
