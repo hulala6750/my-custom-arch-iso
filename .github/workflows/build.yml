@@ -1,7 +1,7 @@
-name: Build Custom Arch ISO
+name: Build Sanguine OS
 
 on:
-  workflow_dispatch: # Allows you to trigger the build with a click
+  workflow_dispatch:
 
 jobs:
   build:
@@ -10,37 +10,59 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Build Arch ISO inside Docker
+      - name: Build Sanguine OS ISO inside Docker
         run: |
           docker run --privileged --rm -v $(pwd):/workspace archlinux:latest bash -c "
-            # 1. Update keys and packages
+            # 1. Initialize Pacman Keys and install archiso
             pacman-key --init
             pacman-key --populate
             pacman -Syu --noconfirm archiso git
 
-            # 2. Prepare the build directory
+            # 2. Setup build working directory
             mkdir -p /tmp/archiso-build
             cp -r /usr/share/archiso/configs/releng/* /tmp/archiso-build/
 
-            # 3. Enable multilib (required for Steam / Gaming)
+            # 3. Apply Sanguine OS Branding to ISO Profile
+            sed -i 's/iso_name=\"archlinux\"/iso_name=\"sanguine-os\"/' /tmp/archiso-build/profiledef.sh
+            sed -i 's/iso_publisher=\"Arch Linux <https:\/\/archlinux.org>\"/iso_publisher=\"Sanguine OS\"/' /tmp/archiso-build/profiledef.sh
+            sed -i 's/iso_application=\"Arch Linux Live\/Rescue DVD\"/iso_application=\"Sanguine OS Live System\"/' /tmp/archiso-build/profiledef.sh
+
+            # 4. Set Hostname and OS identity to Sanguine OS
+            echo 'sanguine-os' > /tmp/archiso-build/airootfs/etc/hostname
+            echo 'Welcome to Sanguine OS' > /tmp/archiso-build/airootfs/etc/issue
+
+            cat << 'EOF' > /tmp/archiso-build/airootfs/etc/os-release
+            NAME=\"Sanguine OS\"
+            PRETTY_NAME=\"Sanguine OS\"
+            ID=sanguine
+            ID_LIKE=arch
+            BUILD_ID=rolling
+            ANSI_COLOR=\"38;2;178;34;34\"
+            HOME_URL=\"https://github.com\"
+            SUPPORT_URL=\"https://github.com\"
+            BUG_REPORT_URL=\"https://github.com\"
+            EOF
+
+            # 5. Enable 32-bit Multilib for Steam and Gaming
             sed -i '/\[multilib\]/,/Include/ s/^#//' /tmp/archiso-build/pacman.conf
 
-            # 4. Overwrite package list with yours
+            # 6. Inject your package list
             cat /workspace/packages.x86_64 >> /tmp/archiso-build/packages.x86_64
 
-            # 5. Enable LightDM (login screen) and Network on boot
+            # 7. Enable KDE Login (SDDM) and NetworkManager on boot
             mkdir -p /tmp/archiso-build/airootfs/etc/systemd/system/display-manager.service.wants/
-            ln -s /usr/lib/systemd/system/lightdm.service /tmp/archiso-build/airootfs/etc/systemd/system/display-manager.service
+            ln -s /usr/lib/systemd/system/sddm.service /tmp/archiso-build/airootfs/etc/systemd/system/display-manager.service
+
             mkdir -p /tmp/archiso-build/airootfs/etc/systemd/system/multi-user.target.wants/
             ln -s /usr/lib/systemd/system/NetworkManager.service /tmp/archiso-build/airootfs/etc/systemd/system/multi-user.target.wants/NetworkManager.service
 
-            # 6. Build the ISO
+            # 8. Build the Sanguine OS ISO
             cd /tmp/archiso-build
             mkarchiso -v -w work/ -o /workspace/out/ .
           "
 
-      - name: Upload ISO Artifact
+      - name: Upload Sanguine OS ISO Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Custom-Arch-Kali-Gaming-ISO
+          name: Sanguine-OS-Live-ISO
           path: out/*.iso
